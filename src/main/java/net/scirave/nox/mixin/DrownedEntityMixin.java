@@ -27,4 +27,8 @@ public abstract class DrownedEntityMixin extends ZombieEntityMixin {
         return original;
     }
 
+    @Override
+    public boolean nox$isAllowedToMine() {
+        return NoxConfig.drownedBreakBlocks;
+    }
 }

@@ -58,6 +58,8 @@ public class NoxConfig extends MidnightConfig {
     public static boolean zombiesBreakBlocks = true;
     @Entry
     public static boolean zombifiedPiglinsBreakBlocks = true;
+    @Entry
+    public static boolean drownedBreakBlocks = true;
 
     // Spawning
     @Comment(centered = true)
