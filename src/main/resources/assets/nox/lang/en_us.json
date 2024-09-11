@@ -204,6 +204,8 @@
   "nox.midnightconfig.guardiansPlaceWaterOnDeath.tooltip": "Guardians place flowing water on death",
   "nox.midnightconfig.guardianDeathLeavesWaterSource": "Guardian Death Leaves Water Source",
   "nox.midnightconfig.guardianDeathLeavesWaterSource.tooltip": "If the above is enabled, Guardians place a water source on death",
+  "nox.midnightconfig.guardianConstantBeam": "Guardian Constant Beam",
+  "nox.midnightconfig.guardianConstantBeam.tooltip": "Guardian Beams don't stop upon inflicting damage",
 
   "nox.midnightconfig.comment_illagers": "Illagers",
   "nox.midnightconfig.evokerBaseHealthMultiplier": "Evoker Base Health Multiplier",

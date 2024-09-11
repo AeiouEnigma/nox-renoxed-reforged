@@ -16,6 +16,7 @@ import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.ai.goal.ActiveTargetGoal;
 import net.minecraft.entity.ai.goal.TrackTargetGoal;
 import net.minecraft.entity.mob.Angerable;
+import net.minecraft.entity.mob.GuardianEntity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.passive.GolemEntity;
@@ -57,7 +58,9 @@ public abstract class ActiveTargetGoalMixin extends TrackTargetGoal {
     @Inject(method = "canStart", at = @At("HEAD"), cancellable = true)
     public void nox$noRandomTarget(CallbackInfoReturnable<Boolean> cir) {
         this.findClosestTarget();
+        if (this.mob instanceof GuardianEntity && NoxConfig.guardianConstantBeam) {
+            return;
+        }
         cir.setReturnValue(this.targetEntity != null);
     }
-
 }

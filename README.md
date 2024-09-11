@@ -187,6 +187,7 @@ Experimentation is encouraged.
 * Place water upon taking damage
 * Spawn naturally
 * Won't make that stupid beam noise unless their target is a player
+* Beam doesn't stop upon inflicting damage
 
 ### Drowned..
 * Have increased speed in water

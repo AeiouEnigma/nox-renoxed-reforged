@@ -245,6 +245,8 @@ public class NoxConfig extends MidnightConfig {
     public static boolean guardiansPlaceWaterOnDeath = true;
     @Entry
     public static boolean guardianDeathLeavesWaterSource = true;
+    @Entry
+    public static boolean guardianConstantBeam = true;
 
     // Illagers
     @Comment(centered = true)
