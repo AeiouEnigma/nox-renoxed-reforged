@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,41 +11,75 @@
 
 package net.scirave.nox;
 
-import eu.pb4.polymer.core.api.block.PolymerBlockUtils;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.item.ArmorItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ToolItem;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.registry.Registry;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.data.DataProvider;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.scirave.nox.blocks.NoxCobwebBlock;
 import net.scirave.nox.config.NoxConfig;
-import net.scirave.nox.polymer.blocks.NoxCobwebBlock;
-import net.scirave.nox.polymer.blocks.NoxCobwebBlockEntity;
+import net.scirave.nox.blocks.NoxCobwebBlockEntity;
+import net.scirave.nox.datagen.NoxBlockTagsProvider;
+import net.scirave.nox.datagen.NoxItemTagsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.function.Supplier;
 
-public class Nox implements ModInitializer {
+@Mod(Nox.MOD_ID)
+public class Nox {
 
-    public static String MOD_ID = "nox";
+    public static final String MOD_ID = "nox";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    public static final Block NOX_COBWEB = new NoxCobwebBlock(AbstractBlock.Settings.copy(Blocks.COBWEB));
-    public static BlockEntityType<NoxCobwebBlockEntity> NOX_COBWEB_BLOCK_ENTITY;
+    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MOD_ID);
+    //public static final DeferredBlock<Block> NOX_COBWEB = BLOCKS.registerBlock("cobweb", NoxCobwebBlock::new, BlockBehaviour.Properties.ofFullCopy(Blocks.COBWEB));
+    public static final NoxCobwebBlock NOX_COBWEB = Registry.register(BuiltInRegistries.BLOCK, "nox:cobweb", new NoxCobwebBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.COBWEB)));
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Nox.MOD_ID);
+    public static final Supplier<BlockEntityType<NoxCobwebBlockEntity>> NOX_COBWEB_BLOCK_ENTITY = BLOCK_ENTITY_TYPES.register(
+            "cobweb_block_entity", () -> BlockEntityType.Builder.of(NoxCobwebBlockEntity::new, NOX_COBWEB).build(null));
 
-    @Override
-    public void onInitialize() {
+    public Nox(IEventBus modEventBus, ModContainer modContainer) {
+        BLOCKS.register(modEventBus);
+        BLOCK_ENTITY_TYPES.register(modEventBus);
         NoxConfig.init(MOD_ID, NoxConfig.class);
         NoxConfig.write(MOD_ID);
-        Registry.register(Registries.BLOCK, Identifier.of(MOD_ID, "cobweb"), NOX_COBWEB);
-        PolymerBlockUtils.registerBlockEntity(NOX_COBWEB_BLOCK_ENTITY = Registry.register(Registries.BLOCK_ENTITY_TYPE,
-                Identifier.of(MOD_ID, "cobweb_block_entity"),
-                FabricBlockEntityTypeBuilder.create(NoxCobwebBlockEntity::new, NOX_COBWEB).build()));
     }
+
+    @SubscribeEvent
+    public void gatherData(GatherDataEvent event) {
+        event.getGenerator().addProvider(
+                // Tell generator to run only when server data are generating
+                event.includeServer(),
+                // Extends net.neoforged.neoforge.common.data.BlockTagsProvider
+                (DataProvider.Factory<NoxBlockTagsProvider>) output -> new NoxBlockTagsProvider(
+                        output,
+                        event.getLookupProvider(),
+                        MOD_ID,
+                        event.getExistingFileHelper()
+                )
+        );
+        event.getGenerator().addProvider(
+                // Tell generator to run only when server data are generating
+                event.includeServer(),
+                // Extends net.neoforged.neoforge.common.data.BlockTagsProvider
+                (DataProvider.Factory<NoxItemTagsProvider>) output -> new NoxItemTagsProvider(
+                        output,
+                        event.getLookupProvider(),
+                        MOD_ID,
+                        event.getExistingFileHelper()
+                )
+        );
+    }
+
 }

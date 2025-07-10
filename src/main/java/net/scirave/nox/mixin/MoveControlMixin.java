@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.ai.control.MoveControl;
+import net.minecraft.world.entity.ai.control.MoveControl;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,11 +22,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MoveControlMixin {
 
     @Shadow
-    protected double speed;
+    protected double speedModifier;
 
-    @Inject(method = "strafeTo", at = @At("TAIL"))
+    @Inject(method = "strafe", at = @At("TAIL"))
     public void nox$fasterStrafing(float forward, float sideways, CallbackInfo ci) {
-        this.speed *= 1.5;
+        this.speedModifier *= 1.5;
     }
 
 }

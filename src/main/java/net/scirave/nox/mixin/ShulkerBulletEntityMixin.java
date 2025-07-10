@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,25 +11,25 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.projectile.ShulkerBulletEntity;
-import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.ShulkerBullet;
+import net.minecraft.world.phys.EntityHitResult;
 import net.scirave.nox.config.NoxConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ShulkerBulletEntity.class)
+@Mixin(ShulkerBullet.class)
 public abstract class ShulkerBulletEntityMixin extends ProjectileEntityMixin {
 
-    @Inject(method = "onEntityHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;addStatusEffect(Lnet/minecraft/entity/effect/StatusEffectInstance;Lnet/minecraft/entity/Entity;)Z"))
+    @Inject(method = "onHitEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;addEffect(Lnet/minecraft/world/effect/MobEffectInstance;Lnet/minecraft/world/entity/Entity;)Z"))
     public void nox$shulkerBlind(EntityHitResult entityHitResult, CallbackInfo ci) {
         if (NoxConfig.shulkerBulletsCauseBlindness && entityHitResult.getEntity() instanceof LivingEntity target) {
-            if (this.getOwner() instanceof ShulkerBulletEntity owner) {
-                target.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS, NoxConfig.shulkerBulletBlindnessDuration), owner);
+            if (this.getOwner() instanceof ShulkerBullet owner) {
+                target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, NoxConfig.shulkerBulletBlindnessDuration), owner);
             }
         }
     }

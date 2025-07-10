@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,10 +11,11 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.goal.BowAttackGoal;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.goal.RangedBowAttackGoal;
+import net.minecraft.world.entity.monster.RangedAttackMob;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,37 +23,37 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(BowAttackGoal.class)
-public class BowAttackGoalMixin {
+@Mixin(RangedBowAttackGoal.class)
+public class BowAttackGoalMixin<T extends Mob & RangedAttackMob> {
 
     @Shadow
     @Final
-    private HostileEntity actor;
+    private T mob;
 
     @Shadow
-    private boolean movingToLeft;
+    private boolean strafingClockwise;
     @Shadow
-    private boolean backward;
+    private boolean strafingBackwards;
     @Shadow
     @Final
-    private float squaredRange;
+    private float attackRadiusSqr;
     private int windup = -1;
 
     private boolean heldShield = false;
 
-    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/mob/HostileEntity;getItemUseTime()I"), cancellable = true)
+    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;getTicksUsingItem()I"), cancellable = true)
     public void nox$bowDontShootShields(CallbackInfo ci) {
-        LivingEntity target = this.actor.getTarget();
+        LivingEntity target = this.mob.getTarget();
         if (target == null) return;
 
-        DamageSource fakeSource = actor.getWorld().getDamageSources().mobProjectile(actor, actor);
+        DamageSource fakeSource = mob.level().damageSources().mobProjectile(mob, mob);
 
         if (windup > -1) {
             if (windup > 0) {
                 ci.cancel();
             }
             windup--;
-        } else if (target.isBlocking() && target.blockedByShield(fakeSource)) {
+        } else if (target.isBlocking() && target.isDamageSourceBlocked(fakeSource)) {
             heldShield = true;
             ci.cancel();
         } else if (heldShield) {
@@ -64,21 +65,21 @@ public class BowAttackGoalMixin {
 
     @Inject(method = "tick", at = @At(value = "TAIL"))
     public void nox$newBowStrafe(CallbackInfo ci) {
-        LivingEntity target = this.actor.getTarget();
+        LivingEntity target = this.mob.getTarget();
         if (target != null) {
 
-            this.backward = false;
+            this.strafingBackwards = false;
 
-            double d = this.actor.squaredDistanceTo(target.getX(), target.getY(), target.getZ());
-            if (d < (this.squaredRange * 0.25D)) {
-                this.backward = true;
+            double d = this.mob.distanceToSqr(target.getX(), target.getY(), target.getZ());
+            if (d < (this.attackRadiusSqr * 0.25D)) {
+                this.strafingBackwards = true;
             }
 
-            if ((double) this.actor.getRandom().nextFloat() < 0.1F) {
-                this.movingToLeft = !this.movingToLeft;
+            if ((double) this.mob.getRandom().nextFloat() < 0.1F) {
+                this.strafingClockwise = !this.strafingClockwise;
             }
 
-            this.actor.getMoveControl().strafeTo(backward ? -0.5F : 0.5F, this.movingToLeft ? 0.5F : -0.5F);
+            this.mob.getMoveControl().strafe(strafingBackwards ? -0.5F : 0.5F, this.strafingClockwise ? 0.5F : -0.5F);
         }
     }
 

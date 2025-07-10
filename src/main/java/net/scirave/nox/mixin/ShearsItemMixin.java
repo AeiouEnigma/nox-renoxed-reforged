@@ -1,17 +1,6 @@
-/*
- * -------------------------------------------------------------------
- * Nox
- * Copyright (c) 2025 SciRave
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- * -------------------------------------------------------------------
- */
-
 package net.scirave.nox.mixin;
 
-import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.ShearsItem;
 import net.minecraft.world.level.block.Block;
 import net.scirave.nox.Nox;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,8 +10,8 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import java.util.ArrayList;
 import java.util.List;
 
-@Mixin(SwordItem.class)
-public class SwordItemMixin {
+@Mixin(ShearsItem.class)
+public class ShearsItemMixin {
 
     @ModifyArg(method = "createToolProperties", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/component/Tool$Rule;minesAndDrops(Ljava/util/List;F)Lnet/minecraft/world/item/component/Tool$Rule;"))
     private static List<Block> nox$createToolComponent(List<Block> blocks) {

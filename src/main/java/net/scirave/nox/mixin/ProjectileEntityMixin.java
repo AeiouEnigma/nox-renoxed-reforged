@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,10 +11,10 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.mob.Monster;
-import net.minecraft.entity.passive.GolemEntity;
-import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.animal.AbstractGolem;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.projectile.Projectile;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,20 +22,20 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(ProjectileEntity.class)
+@Mixin(Projectile.class)
 public abstract class ProjectileEntityMixin {
 
     @Shadow
     @Nullable
     public abstract Entity getOwner();
 
-    @Inject(method = "canHit", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "canHitEntity", at = @At("HEAD"), cancellable = true)
     public void nox$phaseThroughBystanders(Entity entity, CallbackInfoReturnable<Boolean> cir) {
 
         Entity owner = this.getOwner();
 
-        if (owner instanceof GolemEntity golemOwner) {
-            if ((!(entity instanceof Monster) && entity != golemOwner.getTarget()) || !golemOwner.canTarget(entity.getType())) {
+        if (owner instanceof AbstractGolem golemOwner) {
+            if ((!(entity instanceof Enemy) && entity != golemOwner.getTarget()) || !golemOwner.canAttackType(entity.getType())) {
                 cir.setReturnValue(false);
             }
         }

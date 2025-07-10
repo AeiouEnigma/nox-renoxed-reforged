@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,13 +11,13 @@
 
 package net.scirave.nox.util;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 public interface Nox$SwimGoalInterface {
 
-    void nox$modifyAttributes(EntityType<?> entityType, World world, CallbackInfo ci);
+    void nox$modifyAttributes(EntityType<?> entityType, Level world, CallbackInfo ci);
 
     boolean nox$canSwim();
 

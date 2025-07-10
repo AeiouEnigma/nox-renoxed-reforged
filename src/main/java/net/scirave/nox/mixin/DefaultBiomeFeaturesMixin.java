@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,10 +11,10 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.world.biome.SpawnSettings;
-import net.minecraft.world.gen.feature.DefaultBiomeFeatures;
+import net.minecraft.data.worldgen.BiomeDefaultFeatures;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.scirave.nox.config.NoxConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,10 +23,10 @@ import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
-@Mixin(DefaultBiomeFeatures.class)
+@Mixin(BiomeDefaultFeatures.class)
 public class DefaultBiomeFeaturesMixin {
 
-    @ModifyArgs(method = "addMonsters", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/biome/SpawnSettings$SpawnEntry;<init>(Lnet/minecraft/entity/EntityType;III)V", ordinal = 7))
+    @ModifyArgs(method = "monsters", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/biome/MobSpawnSettings$SpawnerData;<init>(Lnet/minecraft/world/entity/EntityType;III)V", ordinal = 7))
     private static void nox$witchIncreasedSpawn(Args args) {
         if (NoxConfig.doMoreWitchSpawns) {
             args.set(1, ((int) args.get(1)) * 3);
@@ -34,7 +34,7 @@ public class DefaultBiomeFeaturesMixin {
         }
     }
 
-    @ModifyArgs(method = "addMonsters", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/biome/SpawnSettings$SpawnEntry;<init>(Lnet/minecraft/entity/EntityType;III)V", ordinal = 5))
+    @ModifyArgs(method = "monsters", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/biome/MobSpawnSettings$SpawnerData;<init>(Lnet/minecraft/world/entity/EntityType;III)V", ordinal = 5))
     private static void nox$slimeDecreasedSpawn(Args args) {
         if (NoxConfig.slimeNaturalSpawn) {
             args.set(1, (int) Math.floor(((int) args.get(1)) / 2));
@@ -43,7 +43,7 @@ public class DefaultBiomeFeaturesMixin {
         }
     }
 
-    @ModifyArgs(method = "addOceanMobs", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/biome/SpawnSettings$SpawnEntry;<init>(Lnet/minecraft/entity/EntityType;III)V", ordinal = 2))
+    @ModifyArgs(method = "oceanSpawns", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/biome/MobSpawnSettings$SpawnerData;<init>(Lnet/minecraft/world/entity/EntityType;III)V", ordinal = 2))
     private static void nox$drownedIncreasedSpawn1(Args args) {
         if (NoxConfig.doMoreDrownedSpawns) {
             args.set(1, ((int) args.get(1)) * 8);
@@ -52,7 +52,7 @@ public class DefaultBiomeFeaturesMixin {
         }
     }
 
-    @ModifyArgs(method = "addWarmOceanMobs", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/biome/SpawnSettings$SpawnEntry;<init>(Lnet/minecraft/entity/EntityType;III)V", ordinal = 3))
+    @ModifyArgs(method = "warmOceanSpawns", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/biome/MobSpawnSettings$SpawnerData;<init>(Lnet/minecraft/world/entity/EntityType;III)V", ordinal = 3))
     private static void nox$drownedIncreasedSpawn2(Args args) {
         if (NoxConfig.doMoreDrownedSpawns) {
             args.set(1, ((int) args.get(1)) * 8);
@@ -61,22 +61,22 @@ public class DefaultBiomeFeaturesMixin {
         }
     }
 
-    @Inject(method = "addCaveMobs", at = @At("TAIL"))
-    private static void nox$caveSpiderSpawns(SpawnSettings.Builder builder, CallbackInfo ci) {
+    @Inject(method = "caveSpawns", at = @At("TAIL"))
+    private static void nox$caveSpiderSpawns(MobSpawnSettings.Builder builder, CallbackInfo ci) {
         if (NoxConfig.spawnCaveSpidersInCaves)
-            builder.spawn(SpawnGroup.MONSTER, new SpawnSettings.SpawnEntry(EntityType.CAVE_SPIDER, 80, 4, 4));
+            builder.addSpawn(MobCategory.MONSTER, new MobSpawnSettings.SpawnerData(EntityType.CAVE_SPIDER, 80, 4, 4));
     }
 
-    @Inject(method = "addOceanMobs", at = @At("TAIL"))
-    private static void nox$guardianSpawns1(SpawnSettings.Builder builder, int squidWeight, int squidMaxGroupSize, int codWeight, CallbackInfo ci) {
+    @Inject(method = "oceanSpawns", at = @At("TAIL"))
+    private static void nox$guardianSpawns1(MobSpawnSettings.Builder builder, int squidWeight, int squidMaxGroupSize, int codWeight, CallbackInfo ci) {
         if (NoxConfig.guardianNaturalSpawnWeight > 0)
-            builder.spawn(SpawnGroup.MONSTER, new SpawnSettings.SpawnEntry(EntityType.GUARDIAN, NoxConfig.guardianNaturalSpawnWeight, 4, 4));
+            builder.addSpawn(MobCategory.MONSTER, new MobSpawnSettings.SpawnerData(EntityType.GUARDIAN, NoxConfig.guardianNaturalSpawnWeight, 4, 4));
     }
 
-    @Inject(method = "addWarmOceanMobs", at = @At("TAIL"))
-    private static void nox$guardianSpawns2(SpawnSettings.Builder builder, int squidWeight, int squidMinGroupSize, CallbackInfo ci) {
+    @Inject(method = "warmOceanSpawns", at = @At("TAIL"))
+    private static void nox$guardianSpawns2(MobSpawnSettings.Builder builder, int squidWeight, int squidMinGroupSize, CallbackInfo ci) {
         if (NoxConfig.guardianNaturalSpawnWeight > 0)
-            builder.spawn(SpawnGroup.MONSTER, new SpawnSettings.SpawnEntry(EntityType.GUARDIAN, NoxConfig.guardianNaturalSpawnWeight, 4, 4));
+            builder.addSpawn(MobCategory.MONSTER, new MobSpawnSettings.SpawnerData(EntityType.GUARDIAN, NoxConfig.guardianNaturalSpawnWeight, 4, 4));
     }
 
 }

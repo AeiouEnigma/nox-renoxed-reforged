@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,12 +11,12 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.Monster;
-import net.minecraft.entity.passive.IronGolemEntity;
-import net.minecraft.util.math.Box;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.phys.AABB;
 import net.scirave.nox.config.NoxConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,25 +26,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 
-@Mixin(IronGolemEntity.class)
+@Mixin(IronGolem.class)
 public abstract class IronGolemEntityMixin extends GolemEntityMixin {
 
     @Shadow
-    public abstract boolean canTarget(EntityType<?> type);
+    public abstract boolean canAttackType(EntityType<?> type);
 
     @Shadow
-    public abstract boolean tryAttack(Entity target);
+    public abstract boolean doHurtTarget(Entity target);
 
     private boolean nox$canSweepAttack = true;
 
-    @Inject(method = "tryAttack", at = @At(value = "INVOKE", target = "Lnet/minecraft/enchantment/EnchantmentHelper;onTargetDamaged(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/entity/Entity;Lnet/minecraft/entity/damage/DamageSource;)V"))
+    @Inject(method = "doHurtTarget", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/enchantment/EnchantmentHelper;doPostAttackEffects(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/damagesource/DamageSource;)V"))
     public void nox$ironGolemSweepAttack(Entity target, CallbackInfoReturnable<Boolean> cir) {
         if (NoxConfig.ironGolemsHaveASweepAttack) {
             if (this.nox$canSweepAttack) {
                 this.nox$canSweepAttack = false;
-                List<MobEntity> list = this.getWorld().getEntitiesByClass(MobEntity.class, Box.of(target.getPos(), 1, 1, 1), (mob) -> (mob instanceof Monster || mob.getTarget() == (Object) this) && this.canTarget(mob.getType()) && this.canTarget(mob));
-                for (MobEntity mob : list) {
-                    this.tryAttack(mob);
+                List<Mob> list = this.level().getEntitiesOfClass(Mob.class, AABB.ofSize(target.position(), 1, 1, 1), (mob) -> (mob instanceof Enemy || mob.getTarget() == (Object) this) && this.canAttackType(mob.getType()) && this.canAttackType(mob.getType()));
+                for (Mob mob : list) {
+                    this.doHurtTarget(mob);
                 }
             }
             this.nox$canSweepAttack = true;

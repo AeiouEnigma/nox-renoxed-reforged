@@ -1,23 +1,27 @@
-/*
- * -------------------------------------------------------------------
- * Nox
- * Copyright (c) 2024 SciRave
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- * -------------------------------------------------------------------
- */
-
 package net.scirave.nox;
 
-import net.fabricmc.api.ClientModInitializer;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
-public class NoxClient implements ClientModInitializer {
+@Mod(value = Nox.MOD_ID, dist = Dist.CLIENT)
+@EventBusSubscriber(modid = Nox.MOD_ID, value = Dist.CLIENT)
+public class NoxClient {
 
-    @Override
-    public void onInitializeClient() {
-
+    public NoxClient(ModContainer container) {
+        container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
+    @SubscribeEvent
+    static void onClientSetup(FMLClientSetupEvent event) {
+        ItemBlockRenderTypes.setRenderLayer(Nox.NOX_COBWEB, RenderType.CUTOUT);
+    }
 }

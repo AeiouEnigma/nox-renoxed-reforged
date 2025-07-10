@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,17 +11,13 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.ai.TargetPredicate;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.boss.dragon.phase.AbstractPhase;
-import net.minecraft.entity.boss.dragon.phase.ChargingPlayerPhase;
-import net.minecraft.entity.boss.dragon.phase.PhaseType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.Heightmap;
-import net.minecraft.world.gen.feature.EndPortalFeature;
-import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.enderdragon.phases.AbstractDragonPhaseInstance;
+import net.minecraft.world.entity.boss.enderdragon.phases.DragonChargePlayerPhase;
+import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,43 +25,43 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ChargingPlayerPhase.class)
-public abstract class ChargingPlayerPhaseMixin extends AbstractPhase {
+@Mixin(DragonChargePlayerPhase.class)
+public abstract class ChargingPlayerPhaseMixin extends AbstractDragonPhaseInstance {
 
-    private static final TargetPredicate RANGE_PREDICATE = TargetPredicate.createAttackable().ignoreVisibility();
+    private static final TargetingConditions RANGE_PREDICATE = TargetingConditions.forCombat().ignoreLineOfSight();
 
     @Shadow
     @Nullable
-    private Vec3d pathTarget;
+    private Vec3 targetLocation;
 
     @Shadow
-    private int chargingTicks;
+    private int timeSinceCharge;
 
-    public ChargingPlayerPhaseMixin(EnderDragonEntity dragon) {
+    public ChargingPlayerPhaseMixin(EnderDragon dragon) {
         super(dragon);
     }
 
     @Shadow
-    public abstract void setPathTarget(Vec3d pathTarget);
+    public abstract void setTarget(Vec3 pathTarget);
 
-    @Inject(method = "serverTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/boss/dragon/phase/PhaseManager;setPhase(Lnet/minecraft/entity/boss/dragon/phase/PhaseType;)V", ordinal = 1), cancellable = true)
+    @Inject(method = "doServerTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhaseManager;setPhase(Lnet/minecraft/world/entity/boss/enderdragon/phases/EnderDragonPhase;)V", ordinal = 1), cancellable = true)
     public void nox$enderDragonLongerCharging(CallbackInfo ci) {
-        if (this.pathTarget != null && this.chargingTicks++ < 200) {
-            double d = this.pathTarget.squaredDistanceTo(this.dragon.getX(), this.dragon.getY(), this.dragon.getZ());
+        if (this.targetLocation != null && this.timeSinceCharge++ < 200) {
+            double d = this.targetLocation.distanceToSqr(this.dragon.getX(), this.dragon.getY(), this.dragon.getZ());
             if (d < 100.0D || d > 22500.0D || this.dragon.horizontalCollision || this.dragon.verticalCollision) {
-                ++this.chargingTicks;
+                ++this.timeSinceCharge;
             }
         } else {
-            this.dragon.getPhaseManager().setPhase(PhaseType.LANDING_APPROACH);
+            this.dragon.getPhaseManager().setPhase(EnderDragonPhase.LANDING_APPROACH);
         }
         ci.cancel();
     }
 
-    @Inject(method = "serverTick", at = @At(value = "HEAD"))
+    @Inject(method = "doServerTick", at = @At(value = "HEAD"))
     public void nox$enderDragonBetterCharging(CallbackInfo ci) {
-        PlayerEntity player = this.dragon.getWorld().getClosestPlayer(RANGE_PREDICATE, this.dragon.getX(), this.dragon.getY(), this.dragon.getZ());
+        Player player = this.dragon.level().getNearestPlayer(RANGE_PREDICATE, this.dragon.getX(), this.dragon.getY(), this.dragon.getZ());
         if (player != null) {
-            this.setPathTarget(player.getPos());
+            this.setTarget(player.position());
 
         }
     }

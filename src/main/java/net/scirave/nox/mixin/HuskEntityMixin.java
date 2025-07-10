@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,20 +11,20 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.mob.HuskEntity;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.monster.Husk;
 import net.scirave.nox.config.NoxConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-@Mixin(HuskEntity.class)
+@Mixin(Husk.class)
 public abstract class HuskEntityMixin extends ZombieEntityMixin {
 
-    @ModifyArg(method = "tryAttack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;addStatusEffect(Lnet/minecraft/entity/effect/StatusEffectInstance;Lnet/minecraft/entity/Entity;)Z"))
-    public StatusEffectInstance nox$huskBetterHunger(StatusEffectInstance effect) {
+    @ModifyArg(method = "doHurtTarget", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;addEffect(Lnet/minecraft/world/effect/MobEffectInstance;Lnet/minecraft/world/entity/Entity;)Z"))
+    public MobEffectInstance nox$huskBetterHunger(MobEffectInstance effect) {
         if (NoxConfig.huskAttacksApplyStrongerHunger)
-            return new StatusEffectInstance(effect.getEffectType(), effect.getDuration(), NoxConfig.huskHungerLevel - 1);
+            return new MobEffectInstance(effect.getEffect(), effect.getDuration(), NoxConfig.huskHungerLevel - 1);
         return effect;
     }
 }

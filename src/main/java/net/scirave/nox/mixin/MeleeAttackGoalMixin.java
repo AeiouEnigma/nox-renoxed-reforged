@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,10 +11,10 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -27,28 +27,28 @@ public abstract class MeleeAttackGoalMixin {
 
     @Shadow
     @Final
-    protected PathAwareEntity mob;
+    protected PathfinderMob mob;
 
-    @Inject(method = "canStart", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "canUse", at = @At("HEAD"), cancellable = true)
     public void nox$meleeUpdateCheck(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity livingEntity = this.mob.getTarget();
         if (livingEntity == null) {
             cir.setReturnValue(false);
         } else if (!livingEntity.isAlive()) {
-            if (this.mob.isInAttackRange(livingEntity)) {
+            if (this.mob.isWithinMeleeAttackRange(livingEntity)) {
                 cir.setReturnValue(true);
             }
         }
     }
 
-    @Inject(method = "shouldContinue", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "canContinueToUse", at = @At("HEAD"), cancellable = true)
     public void nox$meleeContinueCheck(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity livingEntity = this.mob.getTarget();
         if (livingEntity == null) {
             cir.setReturnValue(false);
         } else if (!livingEntity.isAlive()) {
-            if (this.mob.isInAttackRange(livingEntity)) {
-                cir.setReturnValue(!(livingEntity instanceof PlayerEntity) || !livingEntity.isSpectator() && !((PlayerEntity) livingEntity).isCreative());
+            if (this.mob.isWithinMeleeAttackRange(livingEntity)) {
+                cir.setReturnValue(!(livingEntity instanceof Player) || !livingEntity.isSpectator() && !((Player) livingEntity).isCreative());
             }
         }
     }

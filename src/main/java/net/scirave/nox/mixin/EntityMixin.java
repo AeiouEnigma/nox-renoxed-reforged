@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,14 +11,14 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,21 +30,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class EntityMixin {
 
     @Shadow
-    public World world;
+    public Level level;
     @Shadow
-    public boolean noClip;
+    public boolean noPhysics;
 
     @Shadow
-    public abstract BlockPos getBlockPos();
+    public abstract BlockPos blockPosition();
 
     @Shadow
-    public abstract Box getBoundingBox();
+    public abstract AABB getBoundingBox();
 
     @Shadow
-    public abstract Vec3d getPos();
+    public abstract Vec3 position();
 
     @Shadow
-    public abstract World getWorld();
+    public abstract Level level();
 
     @Shadow
     public abstract boolean isAlive();
@@ -61,9 +61,9 @@ public abstract class EntityMixin {
     @Shadow
     public abstract EntityType<?> getType();
 
-    @Shadow public abstract Vec3d getVelocity();
+    @Shadow public abstract Vec3 getDeltaMovement();
 
-    @Shadow public abstract Random getRandom();
+    @Shadow public abstract RandomSource getRandom();
 
     @Inject(method = "isInvulnerableTo", at = @At("HEAD"), cancellable = true)
     public void nox$invulnerableCheck(DamageSource source, CallbackInfoReturnable<Boolean> cir) {

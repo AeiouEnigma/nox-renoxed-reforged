@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,15 +11,15 @@
 
 package net.scirave.nox.util;
 
-import net.minecraft.entity.decoration.EndCrystalEntity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.phys.Vec3;
 
 public interface Nox$EnderDragonFightInterface {
 
     boolean isDragonKilled();
 
-    boolean isConnectedCrystal(EndCrystalEntity crystal);
+    boolean isConnectedCrystal(EndCrystal crystal);
 
-    boolean inDragonRange(Vec3d pos);
+    boolean inDragonRange(Vec3 pos);
 
 }

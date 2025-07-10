@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,13 +11,13 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.PiglinBrain;
-import net.minecraft.item.ArmorItem;
-import net.minecraft.item.ArmorMaterials;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.tag.ItemTags;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.piglin.PiglinAi;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ArmorMaterials;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.scirave.nox.config.NoxConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,14 +26,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Iterator;
 
-@Mixin(value = PiglinBrain.class)
+@Mixin(PiglinAi.class)
 public abstract class PiglinBrainMixin {
 
-    @Inject(method = "wearsGoldArmor", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "isWearingGold", at = @At("RETURN"), cancellable = true)
     private static void nox$piglinWearingAllGold(LivingEntity entity, CallbackInfoReturnable<Boolean> cir) {
         if (NoxConfig.piglinsRequireExclusivelyGoldArmor) {
             if (cir.getReturnValue()) {
-                Iterable<ItemStack> iterable = entity.getArmorItems();
+                Iterable<ItemStack> iterable = entity.getArmorSlots();
                 Iterator<ItemStack> iterator = iterable.iterator();
 
                 boolean hasGoldenArmor = false;
@@ -42,7 +42,7 @@ public abstract class PiglinBrainMixin {
                     ItemStack stack = iterator.next();
                     Item item = stack.getItem();
                     if (item instanceof ArmorItem armor) {
-                        if (armor.getMaterial() == ArmorMaterials.GOLD || item.getRegistryEntry().isIn(ItemTags.PIGLIN_LOVED)) {
+                        if (armor.getMaterial() == ArmorMaterials.GOLD || item.builtInRegistryHolder().is(ItemTags.PIGLIN_LOVED)) {
                             hasGoldenArmor = true;
                         } else {
                             cir.setReturnValue(false);

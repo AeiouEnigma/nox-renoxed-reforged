@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,19 +11,16 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.entity.attribute.EntityAttributeInstance;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.mob.GhastEntity;
-import net.minecraft.entity.mob.PhantomEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
+import net.minecraft.core.Holder;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.Brain;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.monster.Ghast;
+import net.minecraft.world.entity.monster.Phantom;
 import net.scirave.nox.util.Nox$MiningInterface;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,6 +34,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin implements Nox$MiningInterface {
 
+    @Shadow
+    public abstract Brain<?> getBrain();
+
     @Unique
     private boolean nox$mining = false;
     @Shadow
@@ -49,10 +49,10 @@ public abstract class LivingEntityMixin extends EntityMixin implements Nox$Minin
     public abstract float getMaxHealth();
 
     @Shadow
-    public abstract boolean canSee(Entity entity);
+    public abstract boolean hasLineOfSight(Entity entity);
 
     @Shadow
-    public abstract boolean canTarget(LivingEntity target);
+    public abstract boolean canAttack(LivingEntity target);
 
     @Shadow
     public abstract boolean isUsingItem();
@@ -62,39 +62,39 @@ public abstract class LivingEntityMixin extends EntityMixin implements Nox$Minin
 
     @Shadow public abstract float getHealth();
 
-    @Shadow @Nullable public abstract EntityAttributeInstance getAttributeInstance(RegistryEntry<EntityAttribute> attribute);
+    @Shadow @Nullable public abstract AttributeInstance getAttribute(Holder<Attribute> attribute);
 
-    @Inject(method = "blockedByShield", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "isDamageSourceBlocked", at = @At("HEAD"), cancellable = true)
     public void nox$ghastFireballsPierce(DamageSource source, CallbackInfoReturnable<Boolean> cir) {
         if (
-                (source.getAttacker() instanceof GhastEntity) ||
-                        (source.getAttacker() instanceof PhantomEntity)
+                (source.getEntity() instanceof Ghast) ||
+                        (source.getEntity() instanceof Phantom)
         ) {
             cir.setReturnValue(false);
         }
     }
 
-    @Inject(method = "addStatusEffect(Lnet/minecraft/entity/effect/StatusEffectInstance;Lnet/minecraft/entity/Entity;)Z", at = @At("HEAD"), cancellable = true)
-    public void nox$onStatusEffect(StatusEffectInstance effect, Entity source, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "addEffect(Lnet/minecraft/world/effect/MobEffectInstance;Lnet/minecraft/world/entity/Entity;)Z", at = @At("HEAD"), cancellable = true)
+    public void nox$onStatusEffect(MobEffectInstance effect, Entity source, CallbackInfoReturnable<Boolean> cir) {
         //Overridden
     }
 
-    @Inject(method = "onDeath", at = @At("HEAD"))
+    @Inject(method = "die", at = @At("HEAD"))
     public void nox$onDeath(DamageSource source, CallbackInfo ci) {
         //Overridden
     }
 
-    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "hurt", at = @At("HEAD"), cancellable = true)
     public void nox$shouldTakeDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         //Overridden
     }
 
-    @Inject(method = "applyDamage", at = @At("HEAD"))
+    @Inject(method = "actuallyHurt", at = @At("HEAD"))
     public void nox$onDamaged(DamageSource source, float amount, CallbackInfo ci) {
         //Overridden
     }
 
-    @Inject(method = "pushAway", at = @At("HEAD"))
+    @Inject(method = "doPush", at = @At("HEAD"))
     public void nox$onPushAway(Entity entity, CallbackInfo ci) {
         //Overridden
     }

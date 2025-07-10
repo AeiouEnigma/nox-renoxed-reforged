@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,44 +11,44 @@
 
 package net.scirave.nox.goals;
 
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.ai.pathing.Path;
-import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.pathfinder.Path;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 
 public class Nox$FleeSunlightGoal extends Goal {
 
-    protected final PathAwareEntity mob;
+    protected final PathfinderMob mob;
     protected final double speed;
-    protected final World world;
+    protected final Level world;
     protected Path path;
 
-    public Nox$FleeSunlightGoal(PathAwareEntity mob, double speed) {
+    public Nox$FleeSunlightGoal(PathfinderMob mob, double speed) {
         this.mob = mob;
         this.speed = speed;
-        this.world = mob.getWorld();
-        this.setControls(EnumSet.of(Goal.Control.MOVE));
+        this.world = mob.level();
+        this.setFlags(EnumSet.of(Flag.MOVE));
     }
 
-    public boolean canStart() {
+    public boolean canUse() {
         if (!this.world.isDay()) {
             return false;
         } else if (!this.mob.isOnFire()) {
             return false;
-        } else if (!this.world.isSkyVisible(this.mob.getBlockPos())) {
+        } else if (!this.world.canSeeSky(this.mob.blockPosition())) {
             return false;
-        } else if (!this.mob.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) {
+        } else if (!this.mob.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
             return false;
         } else {
             if (this.path != null && isShadedPos(this.path.getTarget())) {
-                Path pathCheck = this.mob.getNavigation().findPathTo(this.path.getTarget(), 0);
-                if (pathCheck != null && pathCheck.reachesTarget()) {
+                Path pathCheck = this.mob.getNavigation().createPath(this.path.getTarget(), 0);
+                if (pathCheck != null && pathCheck.canReach()) {
                     this.path = pathCheck;
                     return true;
                 }
@@ -58,12 +58,12 @@ public class Nox$FleeSunlightGoal extends Goal {
     }
 
     protected boolean isShadedPos(BlockPos pos) {
-        return !this.world.isSkyVisible(pos) && this.world.isAir(pos);
+        return !this.world.canSeeSky(pos) && this.world.isEmptyBlock(pos);
     }
 
     protected boolean targetShadedPos() {
         Path maybePath = this.locateShadedPos();
-        if (maybePath != null && maybePath.reachesTarget()) {
+        if (maybePath != null && maybePath.canReach()) {
             this.path = maybePath;
             return true;
         }
@@ -71,18 +71,18 @@ public class Nox$FleeSunlightGoal extends Goal {
     }
 
     public void tick() {
-        this.mob.getNavigation().startMovingAlong(this.path, this.speed);
+        this.mob.getNavigation().moveTo(this.path, this.speed);
     }
 
     @Nullable
     protected Path locateShadedPos() {
-        Random random = this.mob.getRandom();
-        BlockPos blockPos = this.mob.getBlockPos();
+        RandomSource random = this.mob.getRandom();
+        BlockPos blockPos = this.mob.blockPosition();
 
         for (int i = 0; i < 50; ++i) {
-            BlockPos blockPos2 = blockPos.add(random.nextInt(50) - 25, random.nextInt(8) - 4, random.nextInt(50) - 25);
+            BlockPos blockPos2 = blockPos.offset(random.nextInt(50) - 25, random.nextInt(8) - 4, random.nextInt(50) - 25);
             if (isShadedPos(blockPos2)) {
-                return this.mob.getNavigation().findPathTo(blockPos2, 0);
+                return this.mob.getNavigation().createPath(blockPos2, 0);
             }
         }
 

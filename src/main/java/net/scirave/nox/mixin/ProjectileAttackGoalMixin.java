@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,9 +11,9 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.goal.ProjectileAttackGoal;
-import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.goal.RangedAttackGoal;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ProjectileAttackGoal.class)
+@Mixin(RangedAttackGoal.class)
 public abstract class ProjectileAttackGoalMixin {
 
     @Shadow
@@ -31,23 +31,23 @@ public abstract class ProjectileAttackGoalMixin {
 
     @Shadow
     @Final
-    private MobEntity mob;
+    private Mob mob;
 
     @Shadow
     @Final
-    private float maxShootRange;
+    private float attackRadius;
     @Shadow
-    private int updateCountdownTicks;
+    private int attackTime;
     private boolean movingLeft = false;
 
     @Inject(method = "tick", at = @At(value = "TAIL"))
     public void nox$projectileStrafe(CallbackInfo ci) {
         if (this.target != null) {
-            this.mob.lookAtEntity(target, 30.0F, 30.0F);
+            this.mob.lookAt(target, 30.0F, 30.0F);
             boolean backward = false;
 
-            double d = this.mob.squaredDistanceTo(target.getX(), target.getY(), target.getZ());
-            if (d < (this.maxShootRange * this.maxShootRange * 0.75)) {
+            double d = this.mob.distanceToSqr(target.getX(), target.getY(), target.getZ());
+            if (d < (this.attackRadius * this.attackRadius * 0.75)) {
                 backward = true;
             }
 
@@ -55,14 +55,14 @@ public abstract class ProjectileAttackGoalMixin {
                 this.movingLeft = !this.movingLeft;
             }
 
-            this.mob.getMoveControl().strafeTo(backward ? -0.5F : 0.5F, this.movingLeft ? 0.5F : -0.5F);
+            this.mob.getMoveControl().strafe(backward ? -0.5F : 0.5F, this.movingLeft ? 0.5F : -0.5F);
         }
     }
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
     public void nox$projectileMaybeDontShootShields(CallbackInfo ci) {
         if (this.nox$projectileShouldntShootShields()) {
-            this.updateCountdownTicks++;
+            this.attackTime++;
             ci.cancel();
         }
     }

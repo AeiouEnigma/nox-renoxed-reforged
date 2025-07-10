@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,13 +11,9 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageType;
-import net.minecraft.entity.damage.DamageTypes;
-import net.minecraft.entity.mob.BlazeEntity;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Blaze;
 import net.scirave.nox.config.NoxConfig;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,30 +22,30 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(BlazeEntity.ShootFireballGoal.class)
+@Mixin(Blaze.BlazeAttackGoal.class)
 public abstract class BlazeShootFireballGoalMixin {
 
     @Shadow
-    private int fireballCooldown;
+    private int attackTime;
 
     @Shadow
     @Final
-    private BlazeEntity blaze;
+    private Blaze blaze;
     @Shadow
-    private int fireballsFired;
+    private int attackStep;
     private int windup = -1;
     private boolean movingLeft = false;
     private boolean heldShield = false;
 
     @Shadow
-    protected abstract double getFollowRange();
+    protected abstract double getFollowDistance();
 
     boolean extraTick = false;
     @Inject(method = "tick", at = @At("HEAD"))
     public void nox$blazeLessFireballCooldown(CallbackInfo ci) {
         if(NoxConfig.lessBlazeFireballCooldown) {
             if (extraTick) {
-                this.fireballCooldown--;
+                this.attackTime--;
                 extraTick = false;
             } else {
                 extraTick = true;
@@ -57,20 +53,20 @@ public abstract class BlazeShootFireballGoalMixin {
         }
     }
 
-    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/mob/BlazeEntity;getX()D", ordinal = 0), cancellable = true)
+    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/Blaze;getX()D", ordinal = 0), cancellable = true)
     public void nox$blazeDontShootShields(CallbackInfo ci) {
-        if (this.fireballsFired == 1) {
+        if (this.attackStep == 1) {
             LivingEntity target = this.blaze.getTarget();
             if (target == null) return;
 
-            DamageSource fakeSource = this.blaze.getWorld().getDamageSources().mobProjectile(this.blaze, this.blaze);
+            DamageSource fakeSource = this.blaze.level().damageSources().mobProjectile(this.blaze, this.blaze);
 
             if (windup > -1) {
                 if (windup > 0) {
                     ci.cancel();
                 }
                 windup--;
-            } else if (target.isBlocking() && target.blockedByShield(fakeSource)) {
+        } else if (target.isBlocking() && target.isDamageSourceBlocked(fakeSource)) {
                 heldShield = true;
                 ci.cancel();
             } else if (heldShield) {
@@ -86,11 +82,11 @@ public abstract class BlazeShootFireballGoalMixin {
         LivingEntity target = this.blaze.getTarget();
         if (target != null) {
 
-            this.blaze.lookAtEntity(target, 30.0F, 30.0F);
+            this.blaze.lookAt(target, 30.0F, 30.0F);
             boolean backward = false;
 
-            double d = this.blaze.squaredDistanceTo(target.getX(), target.getY(), target.getZ());
-            if (d < this.getFollowRange() * 0.75) {
+            double d = this.blaze.distanceToSqr(target.getX(), target.getY(), target.getZ());
+            if (d < this.getFollowDistance() * 0.75) {
                 backward = true;
             }
 
@@ -98,7 +94,7 @@ public abstract class BlazeShootFireballGoalMixin {
                 this.movingLeft = !this.movingLeft;
             }
 
-            this.blaze.getMoveControl().strafeTo(backward ? -0.5F : 0.5F, this.movingLeft ? 0.5F : -0.5F);
+            this.blaze.getMoveControl().strafe(backward ? -0.5F : 0.5F, this.movingLeft ? 0.5F : -0.5F);
         }
     }
 

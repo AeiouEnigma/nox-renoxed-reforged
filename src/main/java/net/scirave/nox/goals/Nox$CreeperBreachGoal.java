@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,47 +11,47 @@
 
 package net.scirave.nox.goals;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.ai.pathing.Path;
-import net.minecraft.entity.mob.CreeperEntity;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.GameRules;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.monster.Creeper;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.phys.Vec3;
 import net.scirave.nox.config.NoxConfig;
 import net.scirave.nox.util.Nox$CreeperBreachInterface;
 
 import java.util.EnumSet;
 
-public class Nox$CreeperBreachGoal extends Goal{
+public class Nox$CreeperBreachGoal extends Goal {
 
-    private final CreeperEntity creeper;
+    private final Creeper creeper;
 
-    public Nox$CreeperBreachGoal(CreeperEntity creeper) {
+    public Nox$CreeperBreachGoal(Creeper creeper) {
         this.creeper = creeper;
-        this.setControls(EnumSet.of(Goal.Control.MOVE));
+        this.setFlags(EnumSet.of(Flag.MOVE));
     }
 
-    public boolean canStart() {
+    public boolean canUse() {
         if (((Nox$CreeperBreachInterface) creeper).nox$isAllowedToBreachWalls()) {
             LivingEntity living = this.creeper.getTarget();
-            return living != null && living.getWorld().getGameRules().getBoolean(GameRules.DO_MOB_GRIEFING) && shouldBreach(living);
+            return living != null && living.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) && shouldBreach(living);
         }
         return false;
     }
-    public boolean withinReach(Vec3d pos, LivingEntity target) {
+    public boolean withinReach(Vec3 pos, LivingEntity target) {
         double yDiff = Math.abs(pos.y - target.getY());
         return yDiff <= NoxConfig.creeperBreachDistance;
     }
 
     private boolean shouldBreach(LivingEntity living) {
-        if (!creeper.isNavigating() && this.creeper.age > 60 && (this.creeper.isOnGround() || !this.creeper.isTouchingWater())) {
-            Path path = creeper.getNavigation().findPathTo(living, 0);
+        if (!creeper.isPathFinding() && this.creeper.tickCount > 60 && (this.creeper.onGround() || !this.creeper.isInWater())) {
+            Path path = creeper.getNavigation().createPath(living, 0);
             if (path == null) {
-                return withinReach(this.creeper.getPos(), living);
-            } else if (!path.reachesTarget() && path.getEnd() != null && path.getEnd().getSquaredDistance(this.creeper.getBlockPos()) <= 4) {
-                return withinReach(path.getEnd().getPos(), living);
+                return withinReach(this.creeper.position(), living);
+            } else if (!path.canReach() && path.getEndNode() != null && path.getEndNode().distanceToSqr(this.creeper.blockPosition()) <= 4) {
+                return withinReach(path.getEndNode().asBlockPos().getCenter(), living);
             } else {
-                creeper.getNavigation().startMovingAlong(path, 1.0);
+                creeper.getNavigation().moveTo(path, 1.0);
             }
         }
         return false;

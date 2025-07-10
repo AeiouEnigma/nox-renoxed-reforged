@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,17 +11,16 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.component.EnchantmentEffectComponentTypes;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.CrossbowUser;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.goal.CrossbowAttackGoal;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.item.Items;
-import net.minecraft.util.Hand;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.goal.RangedCrossbowAttackGoal;
+import net.minecraft.world.entity.monster.CrossbowAttackMob;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,22 +28,22 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(CrossbowAttackGoal.class)
+@Mixin(RangedCrossbowAttackGoal.class)
 public class CrossbowAttackGoalMixin {
 
     @Shadow
     @Final
-    private HostileEntity actor;
+    private Mob mob;
 
     @Shadow
-    private int chargedTicksLeft;
+    private int attackDelay;
     @Shadow
-    private int cooldown;
+    private int updatePathDelay;
     @Shadow
-    private CrossbowAttackGoal.Stage stage;
+    private RangedCrossbowAttackGoal.CrossbowState crossbowState;
     @Shadow
     @Final
-    private float squaredRange;
+    private float attackRadiusSqr;
 
     private boolean movingLeft = false;
     private int windup = -1;
@@ -52,21 +51,21 @@ public class CrossbowAttackGoalMixin {
 
     @Inject(method = "tick", at = @At(value = "HEAD"), cancellable = true)
     public void nox$crossbowDontShootShields(CallbackInfo ci) {
-        LivingEntity target = this.actor.getTarget();
+        LivingEntity target = this.mob.getTarget();
         if (target == null) return;
 
-        Hand hand = ProjectileUtil.getHandPossiblyHolding(this.actor, Items.CROSSBOW);
-        if (hand != null && EnchantmentHelper.hasAnyEnchantmentsWith(this.actor.getStackInHand(hand), EnchantmentEffectComponentTypes.PROJECTILE_PIERCING))
+        InteractionHand hand = ProjectileUtil.getWeaponHoldingHand(this.mob, Items.CROSSBOW);
+        if (hand != null && EnchantmentHelper.has(this.mob.getItemInHand(hand), EnchantmentEffectComponents.PROJECTILE_PIERCING))
             return;
 
-        DamageSource fakeSource = actor.getWorld().getDamageSources().mobProjectile(actor, actor);
+        DamageSource fakeSource = mob.level().damageSources().mobProjectile(mob, mob);
 
         if (windup > -1) {
             if (windup > 0) {
                 ci.cancel();
             }
             windup--;
-        } else if (target.isBlocking() && target.blockedByShield(fakeSource)) {
+        } else if (target.isBlocking() && target.isDamageSourceBlocked(fakeSource)) {
             heldShield = true;
             ci.cancel();
         } else if (heldShield) {
@@ -78,39 +77,39 @@ public class CrossbowAttackGoalMixin {
 
     @Inject(method = "tick", at = @At(value = "HEAD"))
     public void nox$crossbowLessDelay(CallbackInfo ci) {
-        this.cooldown = 0;
-        if (this.chargedTicksLeft > 20) {
-            this.chargedTicksLeft = 20;
+        this.updatePathDelay = 0;
+        if (this.attackDelay > 20) {
+            this.attackDelay = 20;
         }
     }
 
     @Inject(method = "tick", at = @At(value = "TAIL"))
     public void nox$crossbowStrafe(CallbackInfo ci) {
-        LivingEntity target = this.actor.getTarget();
-        if (this.stage != CrossbowAttackGoal.Stage.UNCHARGED && target != null) {
+        LivingEntity target = this.mob.getTarget();
+        if (this.crossbowState != RangedCrossbowAttackGoal.CrossbowState.UNCHARGED && target != null) {
 
-            this.actor.lookAtEntity(target, 30.0F, 30.0F);
+            this.mob.lookAt(target, 30.0F, 30.0F);
             boolean backward = false;
 
-            double d = this.actor.squaredDistanceTo(target.getX(), target.getY(), target.getZ());
-            if (d < this.squaredRange * 0.5D) {
+            double d = this.mob.distanceToSqr(target.getX(), target.getY(), target.getZ());
+            if (d < this.attackRadiusSqr * 0.5D) {
                 backward = true;
             }
 
-            if ((double) this.actor.getRandom().nextFloat() < 0.1F) {
+            if ((double) this.mob.getRandom().nextFloat() < 0.1F) {
                 this.movingLeft = !this.movingLeft;
             }
 
-            this.actor.getMoveControl().strafeTo(backward ? -0.5F : 0.5F, this.movingLeft ? 0.5F : -0.5F);
+            this.mob.getMoveControl().strafe(backward ? -0.5F : 0.5F, this.movingLeft ? 0.5F : -0.5F);
         }
     }
 
-    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/intprovider/UniformIntProvider;get(Lnet/minecraft/util/math/random/Random;)I"))
+    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/valueproviders/UniformInt;sample(Lnet/minecraft/util/RandomSource;)I"))
     public void nox$crossbowPrioritizeCharging(CallbackInfo ci) {
-        if (this.stage == CrossbowAttackGoal.Stage.UNCHARGED) {
-            this.actor.setCurrentHand(ProjectileUtil.getHandPossiblyHolding(this.actor, Items.CROSSBOW));
-            this.stage = CrossbowAttackGoal.Stage.CHARGING;
-            ((CrossbowUser) this.actor).setCharging(true);
+        if (this.crossbowState == RangedCrossbowAttackGoal.CrossbowState.UNCHARGED) {
+            this.mob.startUsingItem(ProjectileUtil.getWeaponHoldingHand(this.mob, Items.CROSSBOW));
+            this.crossbowState = RangedCrossbowAttackGoal.CrossbowState.CHARGING;
+            ((CrossbowAttackMob) this.mob).setChargingCrossbow(true);
         }
     }
 

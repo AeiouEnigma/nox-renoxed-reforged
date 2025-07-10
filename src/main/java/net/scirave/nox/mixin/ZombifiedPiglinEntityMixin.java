@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,27 +11,27 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.ZombifiedPiglinEntity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.ZombifiedPiglin;
+import net.minecraft.world.entity.player.Player;
 import net.scirave.nox.config.NoxConfig;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
-@Mixin(ZombifiedPiglinEntity.class)
+@Mixin(ZombifiedPiglin.class)
 public abstract class ZombifiedPiglinEntityMixin extends HostileEntityMixin {
 
     @Shadow
     public abstract void setTarget(@Nullable LivingEntity target);
 
     @Shadow
-    protected abstract void angerNearbyZombifiedPiglins();
+    protected abstract void alertOthers();
 
     @Override
-    public void nox$maybeAngerOnShove(PlayerEntity player) {
+    public void nox$maybeAngerOnShove(Player player) {
         super.nox$maybeAngerOnShove(player);
-        this.angerNearbyZombifiedPiglins();
+        this.alertOthers();
     }
 
     @Override

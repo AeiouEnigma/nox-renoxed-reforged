@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,24 +11,21 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.goal.FleeEntityGoal;
-import net.minecraft.entity.attribute.EntityAttributeInstance;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageType;
-import net.minecraft.entity.damage.DamageTypes;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.WitchEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.potion.Potion;
-import net.minecraft.potion.Potions;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.DamageTypeTags;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.core.Holder;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
+import net.minecraft.world.entity.monster.Witch;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.alchemy.Potions;
 import net.scirave.nox.config.NoxConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -37,21 +34,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
-@Mixin(WitchEntity.class)
+@Mixin(Witch.class)
 public abstract class WitchEntityMixin extends HostileEntityMixin {
 
     @Shadow
-    public abstract boolean isDrinking();
+    public abstract boolean isDrinkingPotion();
 
-    @Inject(method = "initGoals", at = @At("TAIL"))
+    @Inject(method = "registerGoals", at = @At("TAIL"))
     public void nox$witchDrinkingFlee(CallbackInfo ci) {
         if (NoxConfig.witchesFleeToDrink) {
-            this.goalSelector.add(1, new FleeEntityGoal((WitchEntity) (Object) this, LivingEntity.class, 4.0F, 1.1D, 1.35D, (living) -> {
-                if (!this.isDrinking()) return false;
+            this.goalSelector.addGoal(1, new AvoidEntityGoal<>((Witch) (Object) this, LivingEntity.class, 4.0F, 1.1D, 1.35D, (living) -> {
+                if (!this.isDrinkingPotion()) return false;
 
-                if (living instanceof PlayerEntity) {
+                if (living instanceof Player) {
                     return true;
-                } else if (living instanceof MobEntity mob) {
+                } else if (living instanceof Mob mob) {
                     return mob.getTarget() == (Object) this;
                 }
                 return false;
@@ -59,13 +56,13 @@ public abstract class WitchEntityMixin extends HostileEntityMixin {
         }
     }
 
-    @ModifyArgs(method = "initGoals", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/ai/goal/ProjectileAttackGoal;<init>(Lnet/minecraft/entity/ai/RangedAttackMob;DIF)V"))
+    @ModifyArgs(method = "registerGoals", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/goal/RangedAttackGoal;<init>(Lnet/minecraft/world/entity/monster/RangedAttackMob;DIF)V"))
     public void nox$witchFasterAttack(Args args) {
-        args.set(2, MathHelper.ceil((int) args.get(2) * 0.75));
+        args.set(2, Mth.ceil((int) args.get(2) * 0.75));
     }
 
-    @ModifyArg(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/component/type/PotionContentsComponent;createStack(Lnet/minecraft/item/Item;Lnet/minecraft/registry/entry/RegistryEntry;)Lnet/minecraft/item/ItemStack;"))
-    public RegistryEntry<Potion> nox$witchUpgradedPotions(RegistryEntry<Potion> original) {
+    @ModifyArg(method = "aiStep", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/alchemy/PotionContents;createItemStack(Lnet/minecraft/world/item/Item;Lnet/minecraft/core/Holder;)Lnet/minecraft/world/item/ItemStack;"))
+    public Holder<Potion> nox$witchUpgradedPotions(Holder<Potion> original) {
         if (NoxConfig.witchesDrinkBetterPotions) {
             if (Potions.WATER_BREATHING.equals(original)) {
                 return Potions.LONG_WATER_BREATHING;
@@ -80,20 +77,20 @@ public abstract class WitchEntityMixin extends HostileEntityMixin {
         return original;
     }
 
-    @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/attribute/EntityAttributeInstance;addTemporaryModifier(Lnet/minecraft/entity/attribute/EntityAttributeModifier;)V"))
-    public void nox$witchNoDrinkingSlowdown(EntityAttributeInstance instance, EntityAttributeModifier modifier) {
+    @Redirect(method = "aiStep", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;addTransientModifier(Lnet/minecraft/world/entity/ai/attributes/AttributeModifier;)V"))
+    public void nox$witchNoDrinkingSlowdown(AttributeInstance instance, AttributeModifier modifier) {
         // No slowdown!
     }
 
-    @ModifyArg(method = "shootAt", at = @At(value = "INVOKE", target = "Lnet/minecraft/component/type/PotionContentsComponent;createStack(Lnet/minecraft/item/Item;Lnet/minecraft/registry/entry/RegistryEntry;)Lnet/minecraft/item/ItemStack;"))
+    @ModifyArg(method = "performRangedAttack", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/alchemy/PotionContents;createItemStack(Lnet/minecraft/world/item/Item;Lnet/minecraft/core/Holder;)Lnet/minecraft/world/item/ItemStack;"))
     public Item nox$witchLingeringPotions(Item original) {
         if (NoxConfig.witchesUseLingeringPotions)
             return Items.LINGERING_POTION;
         return original;
     }
 
-    @ModifyArg(method = "shootAt", at = @At(value = "INVOKE", target = "Lnet/minecraft/component/type/PotionContentsComponent;createStack(Lnet/minecraft/item/Item;Lnet/minecraft/registry/entry/RegistryEntry;)Lnet/minecraft/item/ItemStack;"))
-    public RegistryEntry<Potion> nox$witchUpgradedSlowness(RegistryEntry<Potion> original) {
+    @ModifyArg(method = "performRangedAttack", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/alchemy/PotionContents;createItemStack(Lnet/minecraft/world/item/Item;Lnet/minecraft/core/Holder;)Lnet/minecraft/world/item/ItemStack;"))
+    public Holder<Potion> nox$witchUpgradedSlowness(Holder<Potion> original) {
         if (NoxConfig.witchesUseStrongerSlowness && Potions.SLOWNESS.equals(original)) {
             return Potions.STRONG_SLOWNESS;
         }
@@ -103,18 +100,18 @@ public abstract class WitchEntityMixin extends HostileEntityMixin {
     @Override
     public void nox$shouldTakeDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         super.nox$shouldTakeDamage(source, amount, cir);
-        if (source.equals(this.getWorld().getDamageSources().magic()))
+        if (source.equals(this.level().damageSources().magic()))
             cir.setReturnValue(NoxConfig.witchesTakeMagicDamage);
-        if (source.getTypeRegistryEntry().isIn(DamageTypeTags.IS_PROJECTILE) && !source.getTypeRegistryEntry().isIn(DamageTypeTags.BYPASSES_ARMOR))
+        if (source.typeHolder().is(DamageTypeTags.IS_PROJECTILE) && !source.typeHolder().is(DamageTypeTags.BYPASSES_ARMOR))
             cir.setReturnValue(!NoxConfig.witchesResistProjectiles);
     }
 
-    @Redirect(method = "shootAt", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/mob/WitchEntity;isDrinking()Z"))
-    public boolean nox$witchDrinkWhileAttack(WitchEntity instance) {
+    @Redirect(method = "performRangedAttack", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/Witch;isDrinkingPotion()Z"))
+    public boolean nox$witchDrinkWhileAttack(Witch instance) {
         return false;
     }
 
-    @ModifyArgs(method = "shootAt", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/projectile/thrown/PotionEntity;setVelocity(DDDFF)V"))
+    @ModifyArgs(method = "performRangedAttack", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/projectile/ThrownPotion;shoot(DDDFF)V"))
     public void nox$witchBetterAim(Args args) {
         args.set(1, (double) args.get(1) * 0.50);
         args.set(3, (float) ((float) args.get(3) + 0.25));

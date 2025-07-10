@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,8 +11,8 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.scirave.nox.util.NoxUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -24,11 +24,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class ItemEntityMixin {
 
     @Shadow
-    public abstract ItemStack getStack();
+    public abstract ItemStack getItem();
 
-    @Inject(method = "isFireImmune", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "fireImmune", at = @At("HEAD"), cancellable = true)
     public void nox$fireImmuneItems(CallbackInfoReturnable<Boolean> cir) {
-        if (this.getStack().getItem().getRegistryEntry().isIn(NoxUtil.FIREPROOF)) {
+        if (this.getItem().getItem().builtInRegistryHolder().is(NoxUtil.FIREPROOF)) {
             cir.setReturnValue(true);
         }
     }

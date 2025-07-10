@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,16 +11,13 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageType;
-import net.minecraft.entity.damage.DamageTypes;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.mob.CreeperEntity;
-import net.minecraft.entity.mob.EndermanEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.player.Player;
 import net.scirave.nox.config.NoxConfig;
 import net.scirave.nox.goals.Nox$MineBlockGoal;
 import org.jetbrains.annotations.Nullable;
@@ -32,58 +29,58 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-@Mixin(EndermanEntity.class)
+@Mixin(EnderMan.class)
 public abstract class EndermanEntityMixin extends HostileEntityMixin {
 
     @Shadow
     public abstract void setTarget(@Nullable LivingEntity target);
 
     @Shadow
-    protected abstract boolean teleportRandomly();
+    protected abstract boolean teleport();
 
     @Shadow
-    public abstract void setProvoked();
+    public abstract void setBeingStaredAt();
 
     @Inject(method = "setTarget", at = @At("HEAD"))
     public void nox$endermanBlindOnProvoked(LivingEntity target, CallbackInfo ci) {
         if (NoxConfig.endermanAppliesBlindnessOnAggro && this.getTarget() != target && target != null) {
-            target.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, NoxConfig.endermanBlindnessStareDuration), (EndermanEntity) (Object) this);
+            target.addEffect(new MobEffectInstance(MobEffects.DARKNESS, NoxConfig.endermanBlindnessStareDuration), (EnderMan) (Object) this);
         }
     }
 
-    @Inject(method = "damage", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/mob/EndermanEntity;teleportRandomly()Z", ordinal = 1), locals = LocalCapture.CAPTURE_FAILSOFT, cancellable = true)
+    @Inject(method = "hurt", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/monster/EnderMan;teleport()Z", ordinal = 1), locals = LocalCapture.CAPTURE_FAILSOFT, cancellable = true)
     public void nox$endermanLessRandomTeleport(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir, boolean entity) {
-        if (source.equals(source.getType().equals(DamageTypes.ON_FIRE) || source.getType().equals(DamageTypes.MAGIC))){
+        if (source.equals(source.type().equals(DamageTypes.ON_FIRE) || source.type().equals(DamageTypes.MAGIC))){
             cir.setReturnValue(entity);
         }
     }
 
-    @Inject(method = "damage", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/damage/DamageSource;getAttacker()Lnet/minecraft/entity/Entity;"))
+    @Inject(method = "hurt", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/damagesource/DamageSource;getEntity()Lnet/minecraft/world/entity/Entity;"))
     public void nox$endermanTeleportOnDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (this.isAlive() && NoxConfig.endermanTeleportsFromMeleeHit && source.getAttacker() instanceof LivingEntity && !source.getType().equals(DamageTypes.ON_FIRE) && !source.getType().equals(DamageTypes.MAGIC)) {
+        if (this.isAlive() && NoxConfig.endermanTeleportsFromMeleeHit && source.getEntity() instanceof LivingEntity && !source.type().equals(DamageTypes.ON_FIRE) && !source.type().equals(DamageTypes.MAGIC)) {
             for (int i = 0; i < 64; ++i) {
-                if (this.teleportRandomly()) {
+                if (this.teleport()) {
                     break;
                 }
             }
         }
     }
 
-    @Inject(method = "initGoals", at = @At("HEAD"))
+    @Inject(method = "registerGoals", at = @At("HEAD"))
     public void nox$endermanInitGoals(CallbackInfo ci) {
-        this.goalSelector.add(1, new Nox$MineBlockGoal((EndermanEntity) (Object) this));
+        this.goalSelector.addGoal(1, new Nox$MineBlockGoal((EnderMan) (Object) this));
     }
 
     @Override
-    public void nox$maybeAngerOnShove(PlayerEntity player) {
+    public void nox$maybeAngerOnShove(Player player) {
         super.nox$maybeAngerOnShove(player);
-        this.setProvoked();
+        this.setBeingStaredAt();
     }
 
     @Override
     public void nox$onSuccessfulAttack(LivingEntity target) {
         if (NoxConfig.endermanAppliesBlindnessOnHit)
-            target.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, NoxConfig.endermanBlindnessHitDuration), (EndermanEntity) (Object) this);
+            target.addEffect(new MobEffectInstance(MobEffects.DARKNESS, NoxConfig.endermanBlindnessHitDuration), (EnderMan) (Object) this);
     }
 
     @Override

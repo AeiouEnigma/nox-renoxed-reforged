@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,15 +11,12 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.ai.TargetPredicate;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.boss.dragon.phase.AbstractPhase;
-import net.minecraft.entity.boss.dragon.phase.HoldingPatternPhase;
-import net.minecraft.entity.boss.dragon.phase.PhaseType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.Heightmap;
-import net.minecraft.world.gen.feature.EndPortalFeature;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.enderdragon.phases.AbstractDragonPhaseInstance;
+import net.minecraft.world.entity.boss.enderdragon.phases.DragonHoldingPatternPhase;
+import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -27,29 +24,29 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(HoldingPatternPhase.class)
-public abstract class HoldingPatternPhaseMixin extends AbstractPhase {
+@Mixin(DragonHoldingPatternPhase.class)
+public abstract class HoldingPatternPhaseMixin extends AbstractDragonPhaseInstance {
 
     @Shadow
     @Final
-    private static TargetPredicate PLAYERS_IN_RANGE_PREDICATE;
+    private static TargetingConditions NEW_TARGET_TARGETING;
 
-    public HoldingPatternPhaseMixin(EnderDragonEntity dragon) {
+    public HoldingPatternPhaseMixin(EnderDragon dragon) {
         super(dragon);
     }
 
     @Shadow
-    protected abstract void strafePlayer(PlayerEntity player);
+    protected abstract void strafePlayer(Player player);
 
-    @Inject(method = "tickInRange", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/random/Random;nextInt(I)I", ordinal = 0), cancellable = true)
+    @Inject(method = "findNewTarget", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/RandomSource;nextInt(I)I", ordinal = 0), cancellable = true)
     public void nox$enderDragonLessStalling(CallbackInfo ci) {
-        PlayerEntity player = this.dragon.getWorld().getClosestPlayer(PLAYERS_IN_RANGE_PREDICATE, this.dragon, this.dragon.getX(),this.dragon.getY(),this.dragon.getZ());
+        Player player = this.dragon.level().getNearestPlayer(NEW_TARGET_TARGETING, this.dragon, this.dragon.getX(),this.dragon.getY(),this.dragon.getZ());
         if (player != null) {
             if (this.dragon.getRandom().nextBoolean()) {
                 this.strafePlayer(player);
             } else {
-                this.dragon.getPhaseManager().setPhase(PhaseType.CHARGING_PLAYER);
-                this.dragon.getPhaseManager().create(PhaseType.CHARGING_PLAYER).setPathTarget(player.getPos());
+                this.dragon.getPhaseManager().setPhase(EnderDragonPhase.CHARGING_PLAYER);
+                this.dragon.getPhaseManager().getPhase(EnderDragonPhase.CHARGING_PLAYER).setTarget(player.position());
             }
         }
         ci.cancel();

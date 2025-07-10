@@ -1,7 +1,7 @@
 /*
  * -------------------------------------------------------------------
  * Nox
- * Copyright (c) 2024 SciRave
+ * Copyright (c) 2025 SciRave
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,13 +11,12 @@
 
 package net.scirave.nox.mixin;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.boss.dragon.EnderDragonFight;
-import net.minecraft.entity.decoration.EndCrystalEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.entity.EntityLookup;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.level.dimension.end.EndDragonFight;
+import net.minecraft.world.phys.Vec3;
 import net.scirave.nox.util.Nox$EnderDragonFightInterface;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -26,18 +25,16 @@ import org.spongepowered.asm.mixin.Shadow;
 
 import java.util.UUID;
 
-import static net.minecraft.world.entity.EntityLookup.*;
-
-@Mixin(EnderDragonFight.class)
+@Mixin(EndDragonFight.class)
 public abstract class EnderDragonFightMixin implements Nox$EnderDragonFightInterface {
 
     @Shadow
     @Final
-    private ServerWorld world;
+    private ServerLevel level;
 
     @Shadow
     @Nullable
-    private UUID dragonUuid;
+    private UUID dragonUUID;
 
     @Shadow
     private boolean dragonKilled;
@@ -48,20 +45,20 @@ public abstract class EnderDragonFightMixin implements Nox$EnderDragonFightInter
     }
 
     @Override
-    public boolean isConnectedCrystal(EndCrystalEntity crystal) {
-        Entity entity = world.getEntity(dragonUuid);
-        if (entity instanceof EnderDragonEntity dragon) {
-            return dragon.connectedCrystal == crystal;
+    public boolean isConnectedCrystal(EndCrystal crystal) {
+        Entity entity = level.getEntity(dragonUUID);
+        if (entity instanceof EnderDragon dragon) {
+            return dragon.nearestCrystal == crystal;
         }
         return false;
     }
 
     @Override
-    public boolean inDragonRange(Vec3d pos) {
+    public boolean inDragonRange(Vec3 pos) {
         if (!this.dragonKilled) {
-            Entity entity = world.getEntity(dragonUuid);
-            if (entity instanceof EnderDragonEntity) {
-                return entity.squaredDistanceTo(pos) < 250000.0D;
+            Entity entity = level.getEntity(dragonUUID);
+            if (entity instanceof EnderDragon) {
+                return entity.distanceToSqr(pos) < 250000.0D;
             }
         }
         return false;
