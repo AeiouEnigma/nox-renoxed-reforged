@@ -1,6 +1,6 @@
 # Nox
 
-Minecraft mob and difficulty overhaul for Fabric.
+Minecraft mob and difficulty overhaul for NeoForge.
 
 Designed with a difficulty of Hard in mind.
 
